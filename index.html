@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Autêntico Labs"/>
+<meta name="description" content="Laboratórios Autênticos com QR Code — Catálogo de produtos"/>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json"/>
+
+<!-- Apple touch icons -->
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png"/>
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png"/>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+
+<title>Autêntico Labs</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0a0a;font-family:'Barlow',sans-serif;color:#eee;-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:#222;border-radius:3px}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+button,a{font-family:'Barlow',sans-serif;cursor:pointer}
+input,textarea{font-family:'Barlow',sans-serif}
+.tab-btn{transition:all .15s;white-space:nowrap;padding:7px 13px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer}
+.card{background:#141414;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s,box-shadow .2s}
+.add-btn{border:none;border-radius:7px;width:28px;height:28px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.qty-num{font-size:13px;font-weight:700;color:#fff;min-width:16px;text-align:center}
+.float-bar{position:fixed;bottom:16px;left:12px;right:12px;border-radius:14px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#c8a84b;box-shadow:0 8px 30px #c8a84b44;animation:up .2s ease;z-index:50}
+.screen{display:none;min-height:100vh;background:#0a0a0a;padding-bottom:90px}
+.screen.active{display:block}
+.input-field{width:100%;background:#141414;border:1px solid #222;border-radius:9px;padding:10px 12px;color:#eee;font-size:14px;outline:none;box-sizing:border-box}
+.input-field:focus{border-color:#444}
+
+/* ── Prompt de instalação ── */
+#install-banner{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:999;
+  background:#111;border-top:1px solid #2a2a2a;
+  padding:14px 16px 28px;
+  animation:slideUp .3s ease;
+  box-shadow:0 -8px 30px #00000088;
+}
+#install-banner .ib-inner{display:flex;align-items:center;gap:12px}
+#install-banner img{width:48px;height:48px;border-radius:12px}
+#install-banner .ib-text{flex:1}
+#install-banner .ib-title{font-size:14px;font-weight:700;color:#fff}
+#install-banner .ib-sub{font-size:11px;color:#666;margin-top:2px}
+#install-banner .ib-actions{display:flex;gap:8px;margin-top:10px}
+#install-banner .btn-install{flex:1;background:#c8a84b;color:#000;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:700}
+#install-banner .btn-dismiss{background:#1e1e1e;color:#666;border:none;border-radius:9px;padding:10px 14px;font-size:13px;font-weight:600}
+
+/* ── Indicador offline ── */
+#offline-bar{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:#333;color:#aaa;text-align:center;font-size:12px;font-weight:600;
+  padding:6px;
+}
+</style>
+</head>
+<body>
+
+<!-- Barra offline -->
+<div id="offline-bar">📵 Sem conexão — modo offline</div>
+
+<!-- ══ TELA CATÁLOGO ══ -->
+<div id="tela-cat" class="screen active">
+  <div style="background:linear-gradient(135deg,#111 0%,#0d0d0d 100%);border-bottom:1px solid #1e1e1e;padding:16px 16px 12px;position:sticky;top:0;z-index:40">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:#fff;letter-spacing:.5px">🏆 Autêntico Labs</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">Laboratórios Autênticos com QR Code</div>
+      </div>
+      <button onclick="irCarrinho()" style="position:relative;background:#141414;border:1px solid #2a2a2a;border-radius:12px;width:46px;height:46px;color:#aaa;display:flex;align-items:center;justify-content:center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span id="badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#c8a84b;color:#000;border-radius:50%;width:19px;height:19px;font-size:11px;font-weight:800;align-items:center;justify-content:center">0</span>
+      </button>
+    </div>
+    <div style="position:relative">
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#555">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </span>
+      <input id="busca" class="input-field" style="padding-left:34px;border-radius:10px" placeholder="Buscar produto ou laboratório..." oninput="renderProdutos()"/>
+    </div>
+  </div>
+
+  <div id="abas-wrap" style="display:flex;gap:6px;padding:12px 12px 6px;overflow-x:auto;scrollbar-width:none"></div>
+  <div id="lab-info" style="margin:6px 12px 10px"></div>
+  <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:0 12px"></div>
+
+  <div id="float-bar" class="float-bar" style="display:none" onclick="irCarrinho()">
+    <span id="fb-txt" style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#000"></span>
+    <span id="fb-total" style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#000"></span>
+  </div>
+</div>
+
+<!-- ══ TELA CARRINHO ══ -->
+<div id="tela-carrinho" class="screen">
+  <div style="background:#111;padding:16px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #1e1e1e;position:sticky;top:0;z-index:40">
+    <button onclick="irCatalogo()" style="background:none;border:none;color:#aaa;padding:4px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <span style="font-weight:800;font-size:17px;color:#fff">Meu Pedido</span>
+  </div>
+
+  <div style="padding:16px">
+    <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Itens selecionados</div>
+    <div id="lista-carrinho"></div>
+    <div id="total-row" style="display:none;justify-content:space-between;padding:14px 0 0;border-top:1px solid #222;margin-top:4px">
+      <span style="color:#888;font-weight:600">Total</span>
+      <span id="total-val" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff"></span>
+    </div>
+  </div>
+
+  <div style="padding:0 16px">
+    <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Seus dados para entrega</div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Nome completo *</label>
+      <input id="cl-nome" class="input-field" placeholder="Ex: João da Silva"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Telefone/WhatsApp</label>
+      <input id="cl-tel" class="input-field" placeholder="(31) 99999-9999"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Endereço completo</label>
+      <input id="cl-end" class="input-field" placeholder="Rua, número, bairro, cidade"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">CEP</label>
+      <input id="cl-cep" class="input-field" placeholder="00000-000"/>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Observações</label>
+      <textarea id="cl-obs" class="input-field" style="height:68px;resize:vertical" placeholder="Alguma observação sobre o pedido..."></textarea>
+    </div>
+
+    <div style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:10px 14px;font-size:12px;color:#666;margin-bottom:20px">
+      📦 <strong style="color:#888">Entrega:</strong> Sedex/PAC ou Transportadora — 3 a 5 dias úteis<br/>
+      💳 <strong style="color:#888">Pagamento:</strong> PIX ou Cartão (MercadoPago até 12x +7%)
+    </div>
+
+    <a id="wpp-btn" href="#" target="_blank" onclick="enviarPedido(event)"
+      style="display:flex;align-items:center;justify-content:center;gap:10px;background:#1a2e1f;color:#3a5e42;border-radius:12px;padding:15px;font-size:15px;font-weight:700;text-decoration:none;transition:all .2s;margin-bottom:40px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Enviar pedido pelo WhatsApp
+    </a>
+    <div id="hint-msg" style="text-align:center;font-size:12px;color:#555;margin-top:-32px;margin-bottom:40px">Preencha seu nome e adicione ao menos 1 produto.</div>
+  </div>
+</div>
+
+<!-- ══ TELA SUCESSO ══ -->
+<div id="tela-ok" class="screen">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px;text-align:center">
+    <div style="font-size:64px">✅</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#fff">Pedido enviado!</div>
+    <div style="font-size:14px;color:#888;max-width:300px">Seu pedido foi encaminhado pelo WhatsApp. Aguarde o contato do administrador para confirmar.</div>
+    <div style="background:#141414;border:1px solid #222;border-radius:12px;padding:12px 20px;font-size:12px;color:#666">📦 Sedex/PAC ou Transportadora — 3 a 5 dias úteis</div>
+    <button onclick="voltarInicio()" style="margin-top:8px;padding:12px 28px;background:#222;border:none;border-radius:10px;color:#aaa;font-size:14px;font-weight:600">← Novo pedido</button>
+  </div>
+</div>
+
+<!-- ══ BANNER INSTALAR PWA ══ -->
+<div id="install-banner">
+  <div class="ib-inner">
+    <img src="icons/icon-192.png" alt="Autêntico Labs"/>
+    <div class="ib-text">
+      <div class="ib-title">Instalar Autêntico Labs</div>
+      <div class="ib-sub">Adicione à tela inicial para acesso rápido e offline</div>
+    </div>
+  </div>
+  <div class="ib-actions">
+    <button class="btn-install" onclick="instalarPWA()">📲 Instalar</button>
+    <button class="btn-dismiss" onclick="fecharBanner()">Agora não</button>
+  </div>
+</div>
+
+<script>
+// ══ DADOS ══
+const WHATSAPP = "5531991809731";
+
+const CATEGORIAS = [
+  { id:"landerlan-inj", label:"Landerlan Injetável", flag:"🇵🇾", icon:"💉", cor:"#c8a84b", produtos:[
+    {id:1,nome:"Duratestoland 250mg",apres:"1ml",preco:28},
+    {id:2,nome:"Testenat Enantato",apres:"250mg/4ml",preco:109},
+    {id:3,nome:"Testoland Cipionato",apres:"Cx 3 amp",preco:119},
+    {id:4,nome:"Testo Propionato",apres:"100mg/10ml",preco:199},
+    {id:5,nome:"Decaland",apres:"200mg/5ml",preco:109},
+    {id:6,nome:"Stanozolol",apres:"50mg/30ml",preco:199},
+    {id:7,nome:"Stanozolol",apres:"50mg/15ml",preco:119},
+  ]},
+  { id:"landerlan-gold-inj", label:"LanderlanGold Injetável", flag:"⚜️", icon:"💉", cor:"#d4af37", produtos:[
+    {id:8,nome:"Durateston Plus",apres:"250mg/10ml",preco:219},
+    {id:9,nome:"Deca Nandrolona",apres:"200mg/10ml",preco:199},
+    {id:10,nome:"Testo Enantato",apres:"250mg/10ml",preco:199},
+    {id:11,nome:"Deposteron Testoland",apres:"200mg/10ml",preco:209},
+    {id:12,nome:"Boldenona",apres:"250mg/10ml",preco:199},
+    {id:13,nome:"Masteron",apres:"100mg/10ml",preco:219},
+    {id:14,nome:"Fenilpropionato NPP",apres:"100mg/10ml",preco:209},
+    {id:15,nome:"Trembolona Enantato",apres:"200mg/10ml",preco:249},
+    {id:16,nome:"Trembolona Acetato",apres:"100mg/10ml",preco:259},
+    {id:17,nome:"Primobolan",apres:"100mg/10ml",preco:389},
+  ]},
+  { id:"landerlan-oral", label:"Landerlan Orais", flag:"🇵🇾", icon:"💊", cor:"#c8a84b", produtos:[
+    {id:18,nome:"Stanozoland Winstrol",apres:"10mg/100 Compr",preco:119},
+    {id:19,nome:"Dianabol",apres:"10mg/100 Compr",preco:119},
+    {id:20,nome:"Hemogenin",apres:"50mg/20 Compr",preco:119},
+    {id:21,nome:"Clembuterol Gold",apres:"4mg/50 Compr",preco:199},
+    {id:22,nome:"Proviron",apres:"25mg/20 Compr",preco:149},
+    {id:23,nome:"Oxandroland",apres:"5mg/100 Compr",preco:269},
+    {id:24,nome:"Oxandroland",apres:"10mg/50 Compr",preco:269},
+    {id:25,nome:"Masteron Oral",apres:"10mg/50 Compr",preco:229},
+  ]},
+  { id:"king-inj", label:"KingPharma Injetável", flag:"🇲🇽", icon:"💉", cor:"#7b2d8b", produtos:[
+    {id:26,nome:"Testo Enantato",apres:"250mg/10ml",preco:189},
+    {id:27,nome:"Durateston Sustan",apres:"250mg/10ml",preco:199},
+    {id:28,nome:"Testex Cipionato",apres:"250mg/10ml",preco:199},
+    {id:29,nome:"Testo Propionato",apres:"200mg/10ml",preco:199},
+    {id:30,nome:"Deca Durabolin",apres:"300mg/10ml",preco:199},
+    {id:31,nome:"Dynabolon NPP",apres:"300mg/10ml",preco:200},
+    {id:32,nome:"Masteron",apres:"100mg/10ml",preco:199},
+    {id:33,nome:"Masteron Enantato",apres:"100mg/10ml",preco:219},
+    {id:34,nome:"Nebido",apres:"250mg/10ml",preco:200},
+    {id:35,nome:"Parabolan Trembo Ace",apres:"100mg/10ml",preco:209},
+    {id:36,nome:"Finaplix Trembo Enan",apres:"100mg/10ml",preco:219},
+    {id:37,nome:"Hexa Parabolan",apres:"51mg/10ml",preco:239},
+    {id:38,nome:"Primabolan",apres:"100mg/10ml",preco:369},
+    {id:39,nome:"Parabolin Blend Tritrembo",apres:"200mg/10ml",preco:320},
+    {id:40,nome:"Boldabolic Boldenona",apres:"300mg/10ml",preco:199},
+    {id:41,nome:"CutStack",apres:"150mg/10ml",preco:200},
+    {id:42,nome:"D-Bol Diana Injet.",apres:"50mg/10ml",preco:179},
+    {id:43,nome:"Stanozolol",apres:"50mg/15ml",preco:120},
+    {id:44,nome:"Estano",apres:"50mg/30ml",preco:180},
+  ]},
+  { id:"king-oral", label:"KingPharma Orais", flag:"🇲🇽", icon:"💊", cor:"#7b2d8b", produtos:[
+    {id:45,nome:"Hemogenin Anadrol",apres:"50mg/50 Compr",preco:249},
+    {id:46,nome:"Anavar Oxandrolona",apres:"10mg/50 Compr",preco:199},
+    {id:47,nome:"Dianabol",apres:"10mg/100 Compr",preco:109},
+    {id:48,nome:"Mastoral",apres:"10mg/50 Compr",preco:199},
+    {id:49,nome:"Stanozolol",apres:"10mg/100 Compr",preco:109},
+    {id:50,nome:"Turinabol",apres:"10mg/50 Compr",preco:200},
+    {id:51,nome:"Halotestin",apres:"10mg/30 Compr",preco:300},
+  ]},
+  { id:"rx-inj", label:"RxPharma Injetável", flag:"🇧🇷", icon:"💉", cor:"#1a7a3c", produtos:[
+    {id:52,nome:"Sustanon Durateston",apres:"250mg/10ml",preco:149},
+    {id:53,nome:"Decanoato Deca",apres:"200mg/10ml",preco:149},
+    {id:54,nome:"Testo Enantato",apres:"250mg/10ml",preco:149},
+    {id:55,nome:"Deposteron Cipionato",apres:"200mg/10ml",preco:149},
+    {id:56,nome:"Testo Propionato",apres:"200mg/10ml",preco:139},
+    {id:57,nome:"Boldenona",apres:"200mg/10ml",preco:149},
+    {id:58,nome:"Trembolona Acetato",apres:"100mg/10ml",preco:159},
+    {id:59,nome:"Trembolona Enantato",apres:"200mg/10ml",preco:169},
+    {id:60,nome:"Masteron",apres:"100mg/10ml",preco:149},
+    {id:61,nome:"Primobolan",apres:"100mg/10ml",preco:289},
+    {id:62,nome:"Stanozolol Óleo",apres:"100mg/30ml",preco:170},
+  ]},
+  { id:"rx-oral", label:"RxPharma Orais", flag:"🇧🇷", icon:"💊", cor:"#1a7a3c", produtos:[
+    {id:63,nome:"Testo Propionato Oral",apres:"20mg/60 Compr",preco:149},
+    {id:64,nome:"Testo Propionato Oral",apres:"30mg/100 Compr",preco:179},
+    {id:65,nome:"Oxandrolona",apres:"10mg/100 Compr",preco:149},
+    {id:66,nome:"Oxandrolona",apres:"20mg/100 Compr",preco:219},
+    {id:67,nome:"Masteron Oral",apres:"20mg/100 Compr",preco:179},
+    {id:68,nome:"Proviron",apres:"25mg/30 Compr",preco:119},
+  ]},
+  { id:"muscle-inj", label:"MusclePharma Injetável", flag:"🇮🇳", icon:"💉", cor:"#c0392b", produtos:[
+    {id:69,nome:"Sustan Durateston",apres:"250mg/1ml",preco:28},
+    {id:70,nome:"Sustan XT Durateston",apres:"250mg/10ml",preco:199},
+    {id:71,nome:"Deca Durabolin XT",apres:"300mg/10ml",preco:199},
+    {id:72,nome:"Testoviron Enantato",apres:"250mg/10ml",preco:199},
+    {id:73,nome:"Testex Cipionato",apres:"250mg/10ml",preco:199},
+    {id:74,nome:"Testoviron Propionato",apres:"100mg/10ml",preco:199},
+    {id:75,nome:"Testoviron 150 Suspensão",apres:"150mg/10ml",preco:209},
+    {id:76,nome:"Dynabolon NPP",apres:"300mg/10ml",preco:189},
+    {id:77,nome:"Boldebol Boldenona",apres:"200mg/10ml",preco:199},
+    {id:78,nome:"Trembolona Acetato",apres:"100mg/10ml",preco:249},
+    {id:79,nome:"Parabolin Blend Tritrembo",apres:"200mg/10ml",preco:319},
+    {id:80,nome:"Masteron",apres:"100mg/10ml",preco:209},
+    {id:81,nome:"Primobolan",apres:"100mg/10ml",preco:369},
+    {id:82,nome:"Winstrol 100 Stano",apres:"100mg/10ml",preco:179},
+    {id:83,nome:"Stanozolol",apres:"50mg/30ml",preco:199},
+    {id:84,nome:"D-Bol Diana Injet.",apres:"50mg/10ml",preco:179},
+    {id:85,nome:"Anadrol Hemo Injet.",apres:"50mg/10ml",preco:179},
+    {id:86,nome:"Cut Stack XT",apres:"200mg/10ml",preco:209},
+    {id:87,nome:"HCG",apres:"5.000ui",preco:199},
+  ]},
+  { id:"farma", label:"Linha Farmácia Nacional", flag:"🇧🇷", icon:"🏥", cor:"#2471a3", produtos:[
+    {id:88,nome:"Durateston Aspen",apres:"250mg/1ml",preco:59},
+    {id:89,nome:"Deposteron EMS",apres:"200mg/3 amp",preco:139},
+    {id:90,nome:"Sibutramina EMS",apres:"15mg/30 Compr",preco:99},
+    {id:91,nome:"Sibutramina EMS",apres:"15mg/60 Compr",preco:179},
+    {id:92,nome:"Anastrozol",apres:"1mg/30 Compr",preco:109},
+    {id:93,nome:"Ritalina EMS",apres:"10mg/60 Compr",preco:239},
+    {id:94,nome:"Ritalina Novartis",apres:"10mg/30 Compr",preco:169},
+    {id:95,nome:"Roacutan Genérico",apres:"20mg/30 Compr",preco:199},
+    {id:96,nome:"Tadalafil",apres:"5mg/30 Compr",preco:49},
+  ]},
+  { id:"emag", label:"Emagrecedores", flag:"🔥", icon:"🔥", cor:"#e67e22", produtos:[
+    {id:97,nome:"Clembuterol Gold",apres:"4mg/50 Compr",preco:189},
+    {id:98,nome:"Clembuterol Brontel",apres:"20mcg/20 Caps",preco:69},
+    {id:99,nome:"Seca Tudo Turbo",apres:"60mg/60 Compr",preco:179},
+    {id:100,nome:"Sibutramina EMS",apres:"15mg/30 Compr",preco:99},
+    {id:101,nome:"Sibutramina EMS",apres:"15mg/60 Compr",preco:179},
+    {id:102,nome:"Anfepramona",apres:"75mg/30 Caps",preco:149},
+    {id:103,nome:"Femproporex",apres:"25mg/30 Caps",preco:139},
+    {id:104,nome:"Lipostabil",apres:"5 Amp 5ml",preco:139},
+    {id:105,nome:"Black Mamba",apres:"65mg/90 Caps",preco:189},
+    {id:106,nome:"Lipo6 Black",apres:"200mg/60 Caps",preco:230},
+  ]},
+  { id:"tpc", label:"TPC", flag:"♂️", icon:"🔄", cor:"#1abc9c", produtos:[
+    {id:107,nome:"Anastrozol Libbs",apres:"1mg/30 Caps",preco:140},
+    {id:108,nome:"Tamoxifeno",apres:"20mg/30 Caps",preco:139},
+    {id:109,nome:"Clomifeno",apres:"50mg/30 Caps",preco:149},
+    {id:110,nome:"Exemestano",apres:"25mg/30 Caps",preco:250},
+    {id:111,nome:"HCG MusclePharma",apres:"5000ui",preco:199},
+  ]},
+];
+
+const TODOS = CATEGORIAS.flatMap(c => c.produtos.map(p => ({...p, catId:c.id, catLabel:c.label, catCor:c.cor, catIcon:c.icon, catFlag:c.flag})));
+
+// ══ ESTADO ══
+let catAtiva = "landerlan-inj";
+let carrinho = [];
+
+const fmt = v => v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+
+function getQty(id){ return (carrinho.find(x=>x.p.id===id)||{qty:0}).qty; }
+function totalItens(){ return carrinho.reduce((s,x)=>s+x.qty,0); }
+function totalValor(){ return carrinho.reduce((s,x)=>s+x.p.preco*x.qty,0); }
+
+function add(id){
+  const p = TODOS.find(x=>x.id===id);
+  const ex = carrinho.find(x=>x.p.id===id);
+  if(ex) ex.qty++; else carrinho.push({p,qty:1});
+  atualizarUI();
+}
+function rem(id){
+  const ex = carrinho.find(x=>x.p.id===id);
+  if(!ex) return;
+  if(ex.qty===1) carrinho = carrinho.filter(x=>x.p.id!==id);
+  else ex.qty--;
+  atualizarUI();
+}
+
+function atualizarUI(){
+  const t = totalItens();
+  const badge = document.getElementById("badge");
+  badge.textContent = t;
+  badge.style.display = t>0 ? "flex" : "none";
+  const fb = document.getElementById("float-bar");
+  if(t>0){
+    fb.style.display="flex";
+    document.getElementById("fb-txt").textContent = `🛒 ${t} ${t===1?"item":"itens"} — Ver pedido`;
+    document.getElementById("fb-total").textContent = fmt(totalValor());
+  } else {
+    fb.style.display="none";
+  }
+  if(document.getElementById("tela-cat").classList.contains("active")) renderProdutos();
+  if(document.getElementById("tela-carrinho").classList.contains("active")) renderCarrinho();
+}
+
+// ══ ABAS ══
+function renderAbas(){
+  const wrap = document.getElementById("abas-wrap");
+  wrap.innerHTML = CATEGORIAS.map(c=>`
+    <button class="tab-btn" onclick="selecionarCat('${c.id}')"
+      style="border:1px solid ${catAtiva===c.id?c.cor:"#222"};background:${catAtiva===c.id?c.cor+"22":"#111"};color:${catAtiva===c.id?c.cor:"#666"}">
+      ${c.icon} ${c.label} ${c.flag}
+    </button>
+  `).join("");
+}
+
+function selecionarCat(id){
+  catAtiva = id;
+  document.getElementById("busca").value = "";
+  renderAbas();
+  renderLabInfo();
+  renderProdutos();
+}
+
+function renderLabInfo(){
+  const c = CATEGORIAS.find(x=>x.id===catAtiva);
+  const busca = document.getElementById("busca").value.trim();
+  if(busca){ document.getElementById("lab-info").innerHTML=""; return; }
+  document.getElementById("lab-info").innerHTML = `
+    <div style="padding:8px 14px;background:${c.cor}11;border:1px solid ${c.cor}33;border-radius:10px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:20px">${c.icon}</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:${c.cor}">${c.label} ${c.flag}</div>
+        <div style="font-size:11px;color:#666">${c.produtos.length} produtos disponíveis</div>
+      </div>
+    </div>`;
+}
+
+// ══ PRODUTOS ══
+function renderProdutos(){
+  const busca = document.getElementById("busca").value.toLowerCase().trim();
+  let lista = busca
+    ? TODOS.filter(p=>p.nome.toLowerCase().includes(busca)||p.apres.toLowerCase().includes(busca))
+    : TODOS.filter(p=>p.catId===catAtiva);
+
+  const abas = document.getElementById("abas-wrap");
+  const info = document.getElementById("lab-info");
+  abas.style.display = busca ? "none" : "flex";
+  if(!busca) renderLabInfo(); else info.innerHTML="";
+
+  if(lista.length===0){
+    document.getElementById("grid").innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:#444;font-size:13px">Nenhum produto encontrado.</div>`;
+    return;
+  }
+
+  document.getElementById("grid").innerHTML = lista.map((p,i)=>{
+    const qty = getQty(p.id);
+    const cor = p.catCor;
+    const border = qty>0 ? cor+"88" : "#222";
+    const shadow = qty>0 ? `0 0 18px ${cor}22` : "none";
+    return `
+    <div class="card" style="border:1px solid ${border};box-shadow:${shadow};animation:up .25s ease ${i*.03}s both">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:#f0f0f0;line-height:1.3">${p.nome}</div>
+          <div style="font-size:11px;color:#777;margin-top:2px">${p.apres}</div>
+        </div>
+        <span style="font-size:18px">${p.catIcon}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${cor}">${fmt(p.preco)}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${qty>0?`<button class="add-btn" style="background:#1e1e1e;color:#aaa" onclick="rem(${p.id})">−</button><span class="qty-num">${qty}</span>`:""}
+          <button class="add-btn" style="background:${cor};color:#000" onclick="add(${p.id})">+</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ══ CARRINHO ══
+function renderCarrinho(){
+  const lista = document.getElementById("lista-carrinho");
+  const totalRow = document.getElementById("total-row");
+  if(carrinho.length===0){
+    lista.innerHTML=`<div style="color:#555;font-size:13px;padding:12px 0">Nenhum item adicionado.</div>`;
+    totalRow.style.display="none";
+  } else {
+    lista.innerHTML = carrinho.map(({p,qty})=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #1a1a1a">
+        <span style="font-size:20px">${p.catIcon}</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#eee">${p.nome}</div>
+          <div style="font-size:11px;color:#666">${p.apres} — ${p.catLabel}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="add-btn" style="background:#1e1e1e;color:#aaa" onclick="rem(${p.id});renderCarrinho()">−</button>
+          <span class="qty-num">${qty}</span>
+          <button class="add-btn" style="background:#222;color:#aaa" onclick="add(${p.id});renderCarrinho()">+</button>
+        </div>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#c8a84b;min-width:70px;text-align:right">${fmt(p.preco*qty)}</span>
+      </div>`).join("");
+    totalRow.style.display="flex";
+    document.getElementById("total-val").textContent = fmt(totalValor());
+  }
+  atualizarBotaoWpp();
+}
+
+function atualizarBotaoWpp(){
+  const nome = document.getElementById("cl-nome").value.trim();
+  const pode = nome.length>=3 && carrinho.length>0;
+  const btn = document.getElementById("wpp-btn");
+  const hint = document.getElementById("hint-msg");
+  btn.style.background = pode ? "#25d366" : "#1a2e1f";
+  btn.style.color = pode ? "#fff" : "#3a5e42";
+  btn.style.pointerEvents = pode ? "auto" : "none";
+  hint.style.display = pode ? "none" : "block";
+}
+
+// ══ NAVEGAÇÃO ══
+function mostrarTela(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+
+function irCarrinho(){
+  mostrarTela("tela-carrinho");
+  renderCarrinho();
+}
+function irCatalogo(){
+  mostrarTela("tela-cat");
+}
+function voltarInicio(){
+  carrinho=[];
+  document.getElementById("cl-nome").value="";
+  document.getElementById("cl-tel").value="";
+  document.getElementById("cl-end").value="";
+  document.getElementById("cl-cep").value="";
+  document.getElementById("cl-obs").value="";
+  atualizarUI();
+  mostrarTela("tela-cat");
+}
+
+// ══ ENVIAR ══
+function enviarPedido(e){
+  const nome = document.getElementById("cl-nome").value.trim();
+  if(nome.length<3||carrinho.length===0){ e.preventDefault(); return; }
+  const tel = document.getElementById("cl-tel").value.trim();
+  const end = document.getElementById("cl-end").value.trim();
+  const cep = document.getElementById("cl-cep").value.trim();
+  const obs = document.getElementById("cl-obs").value.trim();
+
+  let msg = `🏆 *Pedido — Autêntico Labs*\n\n`;
+  msg += `👤 *Nome:* ${nome}\n`;
+  if(tel) msg += `📞 *Tel:* ${tel}\n`;
+  if(end) msg += `📍 *Endereço:* ${end}\n`;
+  if(cep) msg += `📮 *CEP:* ${cep}\n`;
+  msg += `\n*━━━ ITENS ━━━*\n`;
+  carrinho.forEach(({p,qty})=>{
+    msg += `\n${p.catIcon} *${p.nome}* (${p.apres})\n`;
+    msg += `   Lab: ${p.catLabel} ${p.catFlag}\n`;
+    msg += `   ${qty}x ${fmt(p.preco)} = *${fmt(p.preco*qty)}*\n`;
+  });
+  msg += `\n*TOTAL: ${fmt(totalValor())}*\n`;
+  msg += `\n💳 *Pagamento:* PIX ou Cartão (MercadoPago até 12x +7%)`;
+  if(obs) msg += `\n📝 *Obs:* ${obs}`;
+
+  document.getElementById("wpp-btn").href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
+  setTimeout(()=>mostrarTela("tela-ok"), 600);
+}
+
+document.getElementById("cl-nome").addEventListener("input", atualizarBotaoWpp);
+
+// ══ PWA: Service Worker ══
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(reg => console.log("SW registrado:", reg.scope))
+      .catch(err => console.warn("SW erro:", err));
+  });
+}
+
+// ══ PWA: Prompt de instalação ══
+let deferredPrompt = null;
+
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Mostra banner após 3s
+  setTimeout(() => {
+    const dismissed = sessionStorage.getItem("pwa-dismissed");
+    if (!dismissed) document.getElementById("install-banner").style.display = "block";
+  }, 3000);
+});
+
+function instalarPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choice => {
+    deferredPrompt = null;
+    fecharBanner();
+  });
+}
+
+function fecharBanner() {
+  document.getElementById("install-banner").style.display = "none";
+  sessionStorage.setItem("pwa-dismissed", "1");
+}
+
+window.addEventListener("appinstalled", () => {
+  fecharBanner();
+  console.log("PWA instalada!");
+});
+
+// ══ PWA: Indicador offline ══
+function atualizarOnline() {
+  document.getElementById("offline-bar").style.display = navigator.onLine ? "none" : "block";
+}
+window.addEventListener("online", atualizarOnline);
+window.addEventListener("offline", atualizarOnline);
+atualizarOnline();
+
+// ══ INIT ══
+renderAbas();
+renderLabInfo();
+renderProdutos();
+</script>
+</body>
+</html>
